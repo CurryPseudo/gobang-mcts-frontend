@@ -7,25 +7,32 @@ public class PlayerMoveEvent : UnityEvent<Vector2Int> { }
 public class Board : MonoBehaviour
 {
     public Vector2Int Size;
-    private BoardElem[,] elems;
+    public BoardElem[,] Elems;
     public PlayerMoveEvent PlayerMove;
-    public GameObject ElemPrefab;
+    public BoardElem ElemPrefab;
+    public Vector2Int Stride;
+    public ElemType Side = ElemType.BLACK;
     public bool Enable
     {
-        private get;
+        get;
         set;
     }
     private void Awake()
     {
-        elems = new BoardElem[Size.x, Size.y];
-        for(int i = 0; i < Size.x; i++)
+        Elems = new BoardElem[Size.x, Size.y];
+        for(int j = 0; j < Size.y; j++)
         {
-
+            for (int i = 0; i < Size.x; i++)
+            {
+                var elem = Instantiate(ElemPrefab, transform);
+                elem.Position = new Vector2Int(i, j);
+            }
         }
     }
     public void AIMove(Vector2Int pos)
     {
-
+        Elems[pos.x, pos.y].elemType = Side;
+        Side = ElemTypeUtil.Flip(Side);
     }
     public void RandomMove()
     {

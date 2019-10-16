@@ -4,30 +4,39 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
-public enum GameResult
-{
-    PLAYERWIN,
-    AIWIN,
-    DRAW
-}
 [System.Serializable]
-public class GameResultEvent : UnityEvent<GameResult> { }
 public class GobangClient : StateMachine<GobangClient>
 {
     public int TryCount;
-    public GameResultEvent GREvent;
+    public UnityEvent PlayerWinEvent;
+    public UnityEvent AIWinEvent;
+    public UnityEvent DrawEvent;
+    public UnityEvent ChangeSideEvent;
+    public UnityEvent WaitPlayerEvent;
     private void Start()
     {
-        GREvent.AddListener((r) => ChangeState(new GameEnd()));
+        PlayerWinEvent.AddListener(() => ChangeState(new GameEnd()));
+        AIWinEvent.AddListener(() => ChangeState(new GameEnd()));
+        DrawEvent.AddListener(() => ChangeState(new GameEnd()));
         var client = GetComponent<TcpClientProxy>();
         client.Send(string.Format("try_count {0}", TryCount));
+        ChangeState(new WaitPlayerMove());
+    }
+    public void ChangeToChangeSideState()
+    {
         ChangeState(new ChangeSide());
+    }
+    public void ReloadScene()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
     public class ChangeSide : State
     {
         public override IEnumerator Main()
         {
+            Machine.ChangeSideEvent.Invoke();
             var board = SceneSingleton.Get<Board>();
             var client = Machine.GetComponent<TcpClientProxy>();
             client.Send("change_side");
@@ -44,7 +53,7 @@ public class GobangClient : StateMachine<GobangClient>
                         var winrx = new Regex(@"win");
                         if(winrx.Match(s).Success)
                         {
-                            Machine.GREvent.Invoke(GameResult.AIWIN);
+                            Machine.AIWinEvent.Invoke();
                         }
                         else
                         {
@@ -61,6 +70,7 @@ public class GobangClient : StateMachine<GobangClient>
     {
         public override IEnumerator Main()
         {
+            Machine.WaitPlayerEvent.Invoke();
             var board = SceneSingleton.Get<Board>();
             board.Enable = true;
             RegisterStateOnlyEvent(board.PlayerMove, (pos) =>
@@ -80,10 +90,10 @@ public class GobangClient : StateMachine<GobangClient>
             {
                 switch (s) {
                     case "player_win":
-                        Machine.GREvent.Invoke(GameResult.PLAYERWIN);
+                        Machine.PlayerWinEvent.Invoke();
                         break;
                     case "draw":
-                        Machine.GREvent.Invoke(GameResult.DRAW);
+                        Machine.DrawEvent.Invoke();
                         break;
                     case "player_continue":
                         Machine.ChangeState(new ChangeSide());

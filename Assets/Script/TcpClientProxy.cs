@@ -14,7 +14,7 @@ public class TcpClientProxy : MonoBehaviour
     public TcpReceiveEvent ReceiveEvent;
     private void Awake()
     {
-        client = new TcpClient("localhost", 3333);
+        client = new TcpClient("localhost", 3334);
         stream = client.GetStream();
         writer = new StreamWriter(stream);
     }
